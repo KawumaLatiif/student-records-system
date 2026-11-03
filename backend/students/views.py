@@ -1,5 +1,8 @@
 
 from rest_framework import viewsets
+from django.db.models.deletion import ProtectedError
+from rest_framework.response import Response
+from rest_framework import status
 
 from .models import Department, AcademicProgramme, Lecturer, Student, Enrolment
 from .serializers import (
@@ -33,6 +36,26 @@ class LecturerViewSet(viewsets.ModelViewSet):
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        student = self.get_object()
+
+        try:
+            student.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        except ProtectedError:
+            return Response(
+                {
+                    "detail": (
+                        "This student cannot be deleted because "
+                        "they have existing enrolment records. "
+                        "Preserve the academic records or remove "
+                        "the enrolments first."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 # 5. Enrolment API

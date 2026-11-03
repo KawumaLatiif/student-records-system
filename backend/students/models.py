@@ -125,8 +125,8 @@ class Enrolment(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['student', 'programme', 'academic_year', 'semester'],
-                name='unique_enrolment_period'
+                fields=['student', 'academic_year'],
+                name='unique_student_academic_year'
             )
         ]
 
