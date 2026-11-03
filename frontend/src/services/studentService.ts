@@ -71,8 +71,7 @@ export async function createStudent(
   return response.json() as Promise<Student>
 }
 
-
- // Update an existing student record
+// Update an existing student record
 export async function updateStudent(
   id: number,
   studentData: NewStudent,
@@ -106,6 +105,9 @@ export async function deleteStudent(id: number): Promise<void> {
   })
 
   if (!response.ok) {
-    throw new Error('Unable to delete student record.')
+    const errorData = await response.json()
+    throw new Error(
+      errorData.detail || 'Unable to delete student record.',
+    )
   }
 }

@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react'
+
 import {
   createStudent,
   deleteStudent,
@@ -8,6 +9,8 @@ import {
   type NewStudent,
   type Student,
 } from './services/studentService'
+
+import EnrolmentsPage from './EnrolmentsPage'
 import './App.css'
 
 const emptyStudentForm: NewStudent = {
@@ -645,6 +648,8 @@ function App() {
                 </div>
               )}
             </section>
+          ) : activePage === 'Enrolments' ? (
+            <EnrolmentsPage />
           ) : (
             <section className="records-section page-placeholder">
               <h2>{activePage}</h2>
