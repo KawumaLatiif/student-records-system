@@ -1,3 +1,4 @@
+
 import { getStudents } from './studentService'
 import type { Student } from './studentService'
 
@@ -38,9 +39,11 @@ export type NewEnrolment = {
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api'
 
+// Re-export student services and types
 export { getStudents }
 export type { Student }
 
+// Retrieve all academic programmes
 export async function getProgrammes(): Promise<AcademicProgramme[]> {
   const response = await fetch(`${API_BASE_URL}/programmes/`, {
     headers: { Accept: 'application/json' },
@@ -54,8 +57,15 @@ export async function getProgrammes(): Promise<AcademicProgramme[]> {
   return response.json() as Promise<AcademicProgramme[]>
 }
 
-export async function getEnrolments(): Promise<Enrolment[]> {
-  const response = await fetch(`${API_BASE_URL}/enrolments/`, {
+// Retrieve all enrolments or enrolments belonging to a specific student
+export async function getEnrolments(
+  studentId?: number,
+): Promise<Enrolment[]> {
+  const url = studentId
+    ? `${API_BASE_URL}/enrolments/?student=${studentId}`
+    : `${API_BASE_URL}/enrolments/`
+
+  const response = await fetch(url, {
     headers: { Accept: 'application/json' },
     credentials: 'include',
   })
@@ -67,6 +77,7 @@ export async function getEnrolments(): Promise<Enrolment[]> {
   return response.json() as Promise<Enrolment[]>
 }
 
+// Create a new enrolment
 export async function createEnrolment(
   enrolmentData: NewEnrolment,
 ): Promise<Enrolment> {
@@ -88,6 +99,7 @@ export async function createEnrolment(
   return response.json() as Promise<Enrolment>
 }
 
+// Update an existing enrolment
 export async function updateEnrolment(
   id: number,
   enrolmentData: NewEnrolment,

@@ -1,10 +1,16 @@
 
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from django.db.models.deletion import ProtectedError
 from rest_framework.response import Response
-from rest_framework import status
 
-from .models import Department, AcademicProgramme, Lecturer, Student, Enrolment
+from .models import (
+    Department,
+    AcademicProgramme,
+    Lecturer,
+    Student,
+    Enrolment,
+)
+
 from .serializers import (
     DepartmentSerializer,
     AcademicProgrammeSerializer,
@@ -60,5 +66,20 @@ class StudentViewSet(viewsets.ModelViewSet):
 
 # 5. Enrolment API
 class EnrolmentViewSet(viewsets.ModelViewSet):
-    queryset = Enrolment.objects.all()
+    queryset = Enrolment.objects.select_related(
+        "student",
+        "programme",
+        "programme__department",
+    ).all()
+
     serializer_class = EnrolmentSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        student_id = self.request.query_params.get("student")
+
+        if student_id:
+            queryset = queryset.filter(student_id=student_id)
+
+        return queryset

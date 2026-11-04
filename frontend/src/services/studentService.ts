@@ -49,6 +49,21 @@ export async function getStudents(): Promise<Student[]> {
   return response.json() as Promise<Student[]>
 }
 
+export async function getStudent(id: number): Promise<Student> {
+  const response = await fetch(`${API_BASE_URL}/students/${id}/`, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to retrieve student: HTTP ${response.status}`)
+  }
+
+  return response.json() as Promise<Student>
+}
+
+
 // Register a new student
 export async function createStudent(
   studentData: NewStudent,
