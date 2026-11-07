@@ -1,8 +1,7 @@
-
+import { apiRequest, getApiErrorMessage } from './api'
 import { getStudents } from './studentService'
 import type { Student } from './studentService'
 
-// Academic programme returned by Django
 export type AcademicProgramme = {
   id: number
   department: number
@@ -12,7 +11,6 @@ export type AcademicProgramme = {
   description: string | null
 }
 
-// Existing enrolment returned by Django
 export type Enrolment = {
   id: number
   student: number
@@ -26,7 +24,6 @@ export type Enrolment = {
   updated_at: string
 }
 
-// Data required when creating or updating an enrolment
 export type NewEnrolment = {
   student: number
   programme: number
@@ -37,87 +34,72 @@ export type NewEnrolment = {
   status: 'ACTIVE' | 'COMPLETED' | 'SUSPENDED' | 'WITHDRAWN'
 }
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api'
-
-// Re-export student services and types
 export { getStudents }
 export type { Student }
 
-// Retrieve all academic programmes
 export async function getProgrammes(): Promise<AcademicProgramme[]> {
-  const response = await fetch(`${API_BASE_URL}/programmes/`, {
-    headers: { Accept: 'application/json' },
-    credentials: 'include',
-  })
+  const response = await apiRequest('/programmes/')
 
   if (!response.ok) {
-    throw new Error(`Failed to retrieve programmes: HTTP ${response.status}`)
+    throw new Error(await getApiErrorMessage(response))
   }
 
   return response.json() as Promise<AcademicProgramme[]>
 }
 
-// Retrieve all enrolments or enrolments belonging to a specific student
 export async function getEnrolments(
   studentId?: number,
 ): Promise<Enrolment[]> {
   const url = studentId
-    ? `${API_BASE_URL}/enrolments/?student=${studentId}`
-    : `${API_BASE_URL}/enrolments/`
+    ? `/enrolments/?student=${studentId}`
+    : '/enrolments/'
 
-  const response = await fetch(url, {
-    headers: { Accept: 'application/json' },
-    credentials: 'include',
-  })
+  const response = await apiRequest(url)
 
   if (!response.ok) {
-    throw new Error(`Failed to retrieve enrolments: HTTP ${response.status}`)
+    throw new Error(await getApiErrorMessage(response))
   }
 
   return response.json() as Promise<Enrolment[]>
 }
 
-// Create a new enrolment
 export async function createEnrolment(
   enrolmentData: NewEnrolment,
 ): Promise<Enrolment> {
-  const response = await fetch(`${API_BASE_URL}/enrolments/`, {
+  const response = await apiRequest('/enrolments/', {
     method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
     body: JSON.stringify(enrolmentData),
   })
 
   if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(JSON.stringify(errorData))
+    throw new Error(await getApiErrorMessage(response))
   }
 
   return response.json() as Promise<Enrolment>
 }
 
-// Update an existing enrolment
 export async function updateEnrolment(
   id: number,
   enrolmentData: NewEnrolment,
 ): Promise<Enrolment> {
-  const response = await fetch(`${API_BASE_URL}/enrolments/${id}/`, {
+  const response = await apiRequest(`/enrolments/${id}/`, {
     method: 'PUT',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
     body: JSON.stringify(enrolmentData),
   })
 
   if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(JSON.stringify(errorData))
+    throw new Error(await getApiErrorMessage(response))
   }
 
   return response.json() as Promise<Enrolment>
+}
+
+export async function deleteEnrolment(id: number): Promise<void> {
+  const response = await apiRequest(`/enrolments/${id}/`, {
+    method: 'DELETE',
+  })
+
+  if (!response.ok) {
+    throw new Error(await getApiErrorMessage(response))
+  }
 }

@@ -10,6 +10,7 @@ import {
   Bell,
   UserCheck,
   UserX,
+  LogOut,
 } from 'lucide-react'
 
 import {
@@ -33,11 +34,25 @@ import {
   type Enrolment,
 } from './services/enrolmentService'
 
+import {
+  getCurrentUser,
+  login,
+  logout,
+  type User,
+} from './services/authService'
+
+import {
+  getAuthToken,
+  clearAuthToken,
+} from './services/api'
+
+import LoginPage from './LoginPage'
 import EnrolmentsPage from './EnrolmentsPage'
 import StudentProfilePage from './StudentProfilePage'
 import DepartmentsPage from './DepartmentsPage'
 import ProgrammesPage from './ProgrammesPage'
 import LecturersPage from './LecturersPage'
+
 import './App.css'
 
 const emptyStudentForm: NewStudent = {
@@ -53,7 +68,12 @@ const emptyStudentForm: NewStudent = {
   is_active: true,
 }
 
-function App() {
+type DashboardProps = {
+  user: User
+  onLogout: () => void
+}
+
+function Dashboard({ user, onLogout }: DashboardProps) {
   const [activePage, setActivePage] = useState('Dashboard')
   const [searchTerm, setSearchTerm] = useState('')
   const [students, setStudents] = useState<Student[]>([])
@@ -78,20 +98,45 @@ function App() {
   const [enrolments, setEnrolments] = useState<Enrolment[]>([])
   const [programmes, setProgrammes] = useState<AcademicProgramme[]>([])
 
+  // Display the authenticated user's name
+  const displayName =
+    `${user.first_name} ${user.last_name}`.trim() || user.username
+
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0))
+    .join('')
+    .toUpperCase()
+
   // Retrieve student records from Django
   useEffect(() => {
+    let cancelled = false
+
     getStudents()
       .then((data) => {
-        setStudents(data)
-        setError('')
+        if (!cancelled) {
+          setStudents(data)
+          setError('')
+        }
       })
       .catch((error: unknown) => {
         console.error('Error retrieving students:', error)
-        setError('Unable to load student records. Please try again.')
+
+        if (!cancelled) {
+          setError('Unable to load student records. Please try again.')
+        }
       })
       .finally(() => {
-        setIsLoading(false)
+        if (!cancelled) {
+          setIsLoading(false)
+        }
       })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // Load dashboard information when the Dashboard is opened
@@ -348,6 +393,7 @@ function App() {
             {navigation.map((item) => (
               <button
                 key={item.name}
+                type="button"
                 className={`nav-item ${
                   activePage === item.name ? 'active' : ''
                 }`}
@@ -363,12 +409,28 @@ function App() {
         </div>
 
         <div className="sidebar-footer">
-          <div className="profile-avatar">AD</div>
+          <div className="profile-avatar">{initials}</div>
+
           <div className="profile-info">
-            <h4>Administrator</h4>
-            <p>System Admin</p>
+            <h4>{displayName}</h4>
+            <p>
+              {user.is_superuser
+                ? 'System Administrator'
+                : user.is_staff
+                  ? 'Staff Account'
+                  : 'User Account'}
+            </p>
           </div>
-          <span className="profile-menu">⋮</span>
+
+          <button
+            type="button"
+            className="logout-button"
+            onClick={onLogout}
+            title="Log out"
+            aria-label="Log out"
+          >
+            <LogOut size={17} />
+          </button>
         </div>
       </aside>
 
@@ -387,7 +449,7 @@ function App() {
             >
               <Bell size={20} strokeWidth={1.8} />
             </button>
-            <div className="topbar-avatar">AD</div>
+            <div className="topbar-avatar">{initials}</div>
           </div>
         </header>
 
@@ -396,7 +458,9 @@ function App() {
             <>
               <section className="welcome-section">
                 <div>
-                  <h2>Welcome back, Administrator!</h2>
+                  <h2>
+                    Welcome back, {user.first_name || user.username}!
+                  </h2>
                   <p>
                     Here's an overview of your institution's academic records.
                   </p>
@@ -1011,6 +1075,88 @@ function App() {
       </main>
     </div>
   )
+}
+
+// Authentication controller
+function App() {
+  const [user, setUser] = useState<User | null>(null)
+  const [isCheckingSession, setIsCheckingSession] = useState(true)
+
+  // Restore the existing login session when the application opens
+  useEffect(() => {
+    let cancelled = false
+
+    async function restoreSession() {
+      const token = getAuthToken()
+
+      if (!token) {
+        if (!cancelled) {
+          setIsCheckingSession(false)
+        }
+        return
+      }
+
+      try {
+        const currentUser = await getCurrentUser()
+
+        if (!cancelled) {
+          setUser(currentUser)
+        }
+      } catch (error) {
+        console.error('Unable to restore session:', error)
+        clearAuthToken()
+
+        if (!cancelled) {
+          setUser(null)
+        }
+      } finally {
+        if (!cancelled) {
+          setIsCheckingSession(false)
+        }
+      }
+    }
+
+    void restoreSession()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Authenticate the user
+  async function handleLogin(
+    username: string,
+    password: string,
+  ) {
+    const authenticatedUser = await login(username, password)
+    setUser(authenticatedUser)
+  }
+
+  // End the current session
+  async function handleLogout() {
+    try {
+      await logout()
+    } catch (error) {
+      console.error('Logout request failed:', error)
+    } finally {
+      clearAuthToken()
+      setUser(null)
+    }
+  }
+
+  if (isCheckingSession) {
+    return (
+      <div className="auth-loading">
+        Checking session...
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <LoginPage onLogin={handleLogin} />
+  }
+
+  return <Dashboard user={user} onLogout={handleLogout} />
 }
 
 export default App

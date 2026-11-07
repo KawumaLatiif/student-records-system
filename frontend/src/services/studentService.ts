@@ -1,5 +1,4 @@
-
-// Student API service
+import { apiRequest, getApiErrorMessage } from './api'
 
 export type Student = {
   id: number
@@ -30,99 +29,63 @@ export type NewStudent = {
   is_active: boolean
 }
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api'
-
-// Retrieve all student records
 export async function getStudents(): Promise<Student[]> {
-  const response = await fetch(`${API_BASE_URL}/students/`, {
-    method: 'GET',
-    headers: {
-      Accept: 'application/json',
-    },
-    credentials: 'include',
-  })
+  const response = await apiRequest('/students/')
 
   if (!response.ok) {
-    throw new Error(`Failed to retrieve students: HTTP ${response.status}`)
+    throw new Error(await getApiErrorMessage(response))
   }
 
   return response.json() as Promise<Student[]>
 }
 
 export async function getStudent(id: number): Promise<Student> {
-  const response = await fetch(`${API_BASE_URL}/students/${id}/`, {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-    credentials: 'include',
-  })
+  const response = await apiRequest(`/students/${id}/`)
 
   if (!response.ok) {
-    throw new Error(`Failed to retrieve student: HTTP ${response.status}`)
+    throw new Error(await getApiErrorMessage(response))
   }
 
   return response.json() as Promise<Student>
 }
 
-
-// Register a new student
 export async function createStudent(
   studentData: NewStudent,
 ): Promise<Student> {
-  const response = await fetch(`${API_BASE_URL}/students/`, {
+  const response = await apiRequest('/students/', {
     method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
     body: JSON.stringify(studentData),
   })
 
   if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(JSON.stringify(errorData))
+    throw new Error(await getApiErrorMessage(response))
   }
 
   return response.json() as Promise<Student>
 }
 
-// Update an existing student record
 export async function updateStudent(
   id: number,
   studentData: NewStudent,
 ): Promise<Student> {
-  const response = await fetch(`${API_BASE_URL}/students/${id}/`, {
+  const response = await apiRequest(`/students/${id}/`, {
     method: 'PUT',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
     body: JSON.stringify(studentData),
   })
 
   if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(JSON.stringify(errorData))
+    throw new Error(await getApiErrorMessage(response))
   }
 
   return response.json() as Promise<Student>
 }
 
-// Delete an existing student record
 export async function deleteStudent(id: number): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/students/${id}/`, {
+  const response = await apiRequest(`/students/${id}/`, {
     method: 'DELETE',
-    headers: {
-      Accept: 'application/json',
-    },
-    credentials: 'include',
   })
 
   if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(
-      errorData.detail || 'Unable to delete student record.',
-    )
+    throw new Error(await getApiErrorMessage(response))
   }
 }
